@@ -16,7 +16,7 @@ import blobslayer
 
 # %% auto 0
 __all__ = ['recursive_substitute', 'sha256sum', 'to_split_path', 'save_blob', 'get_blob', 'to_metadata_path',
-           'write_file_as_blob', 'read_file_blob', 'BlobSlayer']
+           'write_file_as_blob', 'get_file_metadata', 'set_file_metadata', 'read_file_blob', 'BlobSlayer']
 
 # %% ../nbs/00_core.ipynb 4
 def recursive_substitute(env_vars: dict) -> dict:
@@ -88,7 +88,7 @@ def write_file_as_blob(
     metadata_directory = metadata_directory or Config.METADATA_DIRECTORY
     blobs_directory = blobs_directory or Config.BLOBS_DIRECTORY
     assert metadata_directory is not None and blobs_directory is not None
-    blob_key = save_blob(data)
+    blob_key = save_blob(data, blobs_directory)
     file_metadata = FileMetadataSchema(
         blobKey = blob_key,
     )
@@ -98,6 +98,32 @@ def write_file_as_blob(
         myfs.makedirs(metadata_sub_dir, recreate=True)
         with myfs.open(metadata_path, 'w') as ofile:
             ofile.write(json.dumps(dict(file_metadata)))
+    return blob_key
+
+def get_file_metadata(
+        filepath: str,
+        metadata_directory: str=None,
+) -> dict:
+    metadata_directory = metadata_directory or Config.METADATA_DIRECTORY
+    assert metadata_directory is not None
+    with OSFS(metadata_directory) as myfs:
+        metadata_path = to_metadata_path(filepath)
+        if not myfs.exists(metadata_path):
+            return None
+        with myfs.open(metadata_path) as ifile:
+            return json.load(ifile)
+        
+def set_file_metadata(
+        filepath: str,
+        metadata,
+        metadata_directory: str=None,
+):
+    metadata_directory = metadata_directory or Config.METADATA_DIRECTORY
+    assert metadata_directory is not None
+    with OSFS(metadata_directory) as myfs:
+        metadata_path = to_metadata_path(filepath)
+        with myfs.open(metadata_path, 'w') as ofile:
+            ofile.write(json.dumps(dict(metadata)))
 
 def read_file_blob(
         filepath: str,
@@ -107,13 +133,10 @@ def read_file_blob(
     metadata_directory = metadata_directory or Config.METADATA_DIRECTORY
     blobs_directory = blobs_directory or Config.BLOBS_DIRECTORY
     assert metadata_directory is not None and blobs_directory is not None
-    with OSFS(metadata_directory) as myfs:
-        metadata_path = to_metadata_path(filepath)
-        if not myfs.exists(metadata_path):
-            return None
-        with myfs.open(metadata_path) as ifile:
-            metadata = FileMetadataSchema(**json.load(ifile))
-            return get_blob(metadata.blobKey)
+    metadata = get_file_metadata(filepath, metadata_directory)
+    assert metadata is not None
+    file_metadata = FileMetadataSchema(**metadata)
+    return get_blob(file_metadata.blobKey)
 
 # %% ../nbs/00_core.ipynb 8
 class BlobSlayer(DotenvSchema):
@@ -127,6 +150,17 @@ class BlobSlayer(DotenvSchema):
             cls._default_instance = cls(**recursive_substitute(dict(default_conf)))
             _ensure_storage_directories_exist(cls._default_instance)
         return cls._default_instance
+    
+    def get_metadata(self, filepath: str) -> dict:
+        return get_file_metadata(
+            filepath,
+            self.METADATA_DIRECTORY)
+
+    def set_metadata(self, filepath: str, metadata):
+        return set_file_metadata(
+            filepath,
+            metadata,
+            self.METADATA_DIRECTORY)
 
     def save_file(self, filepath: str, data: bytes):
         return write_file_as_blob(
