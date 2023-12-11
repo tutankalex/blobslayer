@@ -1,0 +1,13 @@
+{
+  "description": "schema for file metadata objects",
+  "properties": {
+    "blobKey": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "blobKey"
+  ],
+  "title": "File Metadata Schema",
+  "type": "object"
+}
