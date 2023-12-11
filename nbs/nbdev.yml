@@ -1,0 +1,9 @@
+project:
+  output-dir: _docs
+
+website:
+  title: "blobslayer"
+  site-url: "https://tutankalex.github.io/blobslayer"
+  description: "simple blob storage interface layer"
+  repo-branch: main
+  repo-url: "https://github.com/tutankalex/blobslayer"

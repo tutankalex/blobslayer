@@ -1,0 +1,19 @@
+{
+  "description": "schema for dotenv/environment variables",
+  "properties": {
+    "BLOBS_DIRECTORY": {
+      "default": "$STORAGE_DIRECTORY/blobs",
+      "type": "string"
+    },
+    "METADATA_DIRECTORY": {
+      "default": "$STORAGE_DIRECTORY/metadata",
+      "type": "string"
+    },
+    "STORAGE_DIRECTORY": {
+      "default": "_blobslayer-storage",
+      "type": "string"
+    }
+  },
+  "title": "Dotenv Schema",
+  "type": "object"
+}
